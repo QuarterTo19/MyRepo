@@ -1,0 +1,64 @@
+Plan for the attack under the knowledge of short RSA key
+
+1. To take a look at certificate run in terminal:
+	
+	openssl x509 -noout -in cacertificate.pem -text
+
+From given file find modulus and exponent. (for modulus simply remove the colons, it's in HEX, make it DEC)
+
+		...
+	        Public Key Algorithm: rsaEncryption
+                Public-Key: (360 bit)
+                Modulus:
+                    00:e6:49:d5:7f:6f:f9:cf:f6:55:cb:79:ee:38:38:
+                    0c:8f:82:78:eb:37:4a:90:05:9b:0f:f0:65:34:82:
+                    9d:33:7c:75:3d:0e:59:af:ed:6f:a4:89:f0:15:cf:
+                    33
+                Exponent: 65537 (0x10001)
+		...
+
+2. Most time consuming process: factorize given modulus, use cado-nfs, msieve, etc.
+
+3. After factorization one have p and q, thus we can process in generating private key.
+
+4. Now follow steps like in generating RSA:
+
+	1. calculate n = p * q
+	2. calculate phi(n)=(p-1)*(q-1)
+	3. Find a number e which is coprime to phi(n) and 1 < e < phi(n) holds.  A trick is to choose e prime and check that e does not divide phi(n). 
+		
+	   [NOTE] We have e here, it's the exponent	
+
+	4. Compute the modular multiplicative inverse d of e (mod phi(n)) (use egcd)
+
+	5. Now generate *.pem file to hold private RSA key 
+		
+		(https://crypto.stackexchange.com/questions/25498/how-to-create-a-pem-file-for-storing-an-rsa-key/25499#25499)
+
+5. Having this you can generate your own certificate for signing files:
+
+#Generating wrong signature
+openssl dgst -md5 -sign test.pem -out rsa.grade.sign grade.txt 
+
+
+#verification oracle
+openssl dgst -md5 -verify <(openssl x509 -in cacertificate.pem -pubkey -noout) -signature rsa.grade.sign grade.txt
+Verified OK
+
+
+
+Bibliography:
+1. https://0day.work/how-i-recovered-your-private-key-or-why-small-keys-are-bad/
+
+
+Appendix A:
+
+00e649d57f6ff9cff655cb79ee38380c8f8278eb374a90059b0ff06534829d337c753d0e59afed6fa489f015cf33 modulus in HEX
+
+2112664634855999140031945945998785346946804826144846396410436155861557104011009549879696604291518474904522547 modulus in DEC
+
+1385409854850246784644682622624349784560468558795524903 p
+
+1524938362073628791222322453937223798227099080053904149 q
+
+
